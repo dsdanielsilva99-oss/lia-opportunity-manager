@@ -36,16 +36,6 @@ Testado em Chrome, Firefox e Safari, em desktop e celular.
 
 ---
 
-## O que está no repositório
-
-```
-index.html                       aplicação completa (HTML + CSS + JavaScript, arquivo único)
-README.md                        este arquivo
-MENSAGEM_02_SENDA.md             rascunho do segundo contato
-diario_de_bordo.pdf              diário de bordo em três páginas
-```
-
----
 
 ## O plano, em resumo
 
