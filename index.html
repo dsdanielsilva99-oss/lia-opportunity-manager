@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel das seis oportunidades — LIA UFSCar</title>
+<style>
+:root{
+  --ink:#10193a; --ink-2:#394363; --mute:#6b7490;
+  --canvas:#eceff6; --paper:#ffffff; --line:#d6dbe8; --line-2:#eceff6;
+  --go:#0d6b4f; --go-bg:#e0f0e9;
+  --prep:#2743b4; --prep-bg:#e3e8fb;
+  --wait:#8a5a12; --wait-bg:#faeedb;
+  --stop:#5e6779; --stop-bg:#e8eaf0;
+  --late:#a3202c;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:70px}
+body{
+  margin:0; background:var(--canvas); color:var(--ink);
+  font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:16px; line-height:1.55; font-variant-numeric:tabular-nums;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{line-height:1.2; margin:0; letter-spacing:-.015em}
+p{margin:0 0 .7em}
+a{color:var(--prep)}
+.wrap{max-width:1120px; margin:0 auto; padding:0 20px}
+
+/* Cabeçalho */
+.top{background:var(--ink); color:#fff; padding:26px 0 0}
+.top h1{font-size:clamp(23px,3.4vw,33px); font-weight:750}
+.top .sub{color:#aeb8d8; margin:7px 0 0; font-size:15px; max-width:62ch}
+.idcard{display:flex; flex-wrap:wrap; gap:7px 26px; margin-top:16px; font-size:13.5px; color:#c3cbe6}
+.idcard b{color:#fff; font-weight:600}
+nav{display:flex; gap:2px; overflow-x:auto; margin-top:20px; scrollbar-width:thin}
+nav button{
+  background:none; border:0; border-bottom:3px solid transparent; color:#aeb8d8;
+  padding:11px 15px; font:inherit; font-size:14.5px; cursor:pointer; white-space:nowrap;
+}
+nav button:hover{color:#fff}
+nav button[aria-selected="true"]{color:#fff; border-bottom-color:#7f93e8; font-weight:600}
+nav button:focus-visible{outline:2px solid #7f93e8; outline-offset:-2px}
+
+main{padding:28px 0 60px}
+section[role="tabpanel"]{display:none}
+section[role="tabpanel"].on{display:block}
+
+.lede{max-width:72ch; color:var(--ink-2); margin-bottom:20px}
+h2.sec{font-size:21px; margin:34px 0 12px}
+h2.sec:first-child{margin-top:0}
+
+.panel{background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:20px}
+.panel + .panel{margin-top:14px}
+
+/* Régua de prazos */
+.rule{background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:22px 20px 14px}
+.ruleline{position:relative; height:3px; background:var(--line); margin:40px 0 0}
+.tick{position:absolute; top:-6px; transform:translateX(-50%); text-align:center; width:104px}
+.dot{width:15px; height:15px; border-radius:50%; background:var(--prep); margin:0 auto; border:3px solid var(--paper); box-shadow:0 0 0 1px var(--line)}
+.tick .d{font-size:13.5px; font-weight:700; margin-top:7px}
+.tick.alt .d{margin-top:56px}
+.tick.alt .dot{box-shadow:0 0 0 1px var(--line), 0 24px 0 -6.5px var(--line)}
+.tick .n{font-size:12px; color:var(--mute); line-height:1.3}
+.tick.first .dot{background:var(--late); width:19px; height:19px; margin-top:-2px}
+.tick .n{min-height:30px}
+.tick.first .d{color:var(--late)}
+.rulefoot{display:flex; justify-content:space-between; font-size:12.5px; color:var(--mute); margin-top:142px; border-top:1px solid var(--line-2); padding-top:10px}
+
+/* Filas */
+.queues{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:14px}
+.queue{background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:16px}
+.queue h3{font-size:15px; display:flex; align-items:baseline; gap:8px}
+.queue h3 em{font-style:normal; font-size:12.5px; color:var(--mute); font-weight:400}
+.queue ol{margin:12px 0 0; padding-left:19px; font-size:14px}
+.queue li{margin-bottom:9px}
+.queue li b{font-weight:600}
+.queue li span{display:block; color:var(--mute); font-size:13px}
+
+/* Compromissos */
+.todo{list-style:none; margin:0; padding:0}
+.todo li{display:flex; gap:11px; align-items:flex-start; padding:11px 0; border-bottom:1px solid var(--line-2)}
+.todo li:last-child{border-bottom:0}
+.todo input{margin-top:4px; width:17px; height:17px; accent-color:var(--go); flex:0 0 auto; cursor:pointer}
+.todo .txt{flex:1}
+.todo .txt b{font-weight:600}
+.todo .txt span{display:block; font-size:13px; color:var(--mute)}
+.todo .when{font-size:13px; font-weight:600; white-space:nowrap; color:var(--ink-2)}
+.todo li.done .txt b{text-decoration:line-through; color:var(--mute)}
+.bar{height:9px; background:var(--line); border-radius:6px; overflow:hidden; margin:10px 0 6px}
+.bar i{display:block; height:100%; background:var(--go); transition:width .25s}
+
+/* Cartões de oportunidade */
+.tools{display:flex; gap:9px; flex-wrap:wrap; margin-bottom:16px}
+.tools select,.tools input{padding:9px 11px; border:1px solid var(--line); border-radius:7px; background:var(--paper); font:inherit; font-size:14px; color:var(--ink)}
+.tools input{min-width:200px; flex:1}
+.cards{display:grid; grid-template-columns:repeat(2,1fr); gap:14px}
+.card{background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:18px; border-left:5px solid var(--prep)}
+.card.go{border-left-color:var(--go)} .card.prep{border-left-color:var(--prep)}
+.card.wait{border-left-color:var(--wait)} .card.stop{border-left-color:var(--stop)}
+.card .head{display:flex; justify-content:space-between; gap:12px; align-items:flex-start}
+.card h3{font-size:17.5px}
+.card .org{font-size:12.5px; color:var(--mute); margin-top:3px}
+.pill{font-size:11.5px; font-weight:700; padding:4px 9px; border-radius:5px; white-space:nowrap; letter-spacing:.01em}
+.pill.go{background:var(--go-bg); color:var(--go)} .pill.prep{background:var(--prep-bg); color:var(--prep)}
+.pill.wait{background:var(--wait-bg); color:var(--wait)} .pill.stop{background:var(--stop-bg); color:var(--stop)}
+.facts{display:grid; grid-template-columns:1fr 1fr; gap:6px 14px; margin:14px 0 0; font-size:13.5px; border-top:1px solid var(--line-2); padding-top:12px}
+.facts div{color:var(--mute)}
+.facts b{color:var(--ink); font-weight:600}
+.sit{font-size:14px; color:var(--ink-2); margin-top:12px; background:var(--canvas); border-radius:7px; padding:10px 12px}
+.more{margin-top:13px; border:0; background:none; color:var(--prep); font:inherit; font-size:14px; font-weight:600; padding:0; cursor:pointer; text-decoration:underline; text-underline-offset:3px}
+.detail{margin-top:14px; padding-top:4px; border-top:1px solid var(--line-2); font-size:14.5px}
+.detail h4{font-size:12.5px; color:var(--mute); font-weight:700; margin:14px 0 4px}
+.detail ul{margin:4px 0 0; padding-left:19px}
+.detail li{margin-bottom:3px}
+[hidden]{display:none !important}
+
+/* Tabelas */
+table{width:100%; border-collapse:collapse; font-size:14px}
+th,td{padding:10px 11px; text-align:left; border-bottom:1px solid var(--line-2); vertical-align:top}
+th{font-size:12.5px; color:var(--mute); font-weight:700; border-bottom:1px solid var(--line)}
+td b{font-weight:600}
+.scroll{overflow-x:auto; -webkit-overflow-scrolling:touch}
+
+/* Grade de capacidade */
+.cap td.c{text-align:center; font-size:12.5px; padding:8px 4px}
+.cap td.s{background:var(--go-bg); color:var(--go); font-weight:700}
+.cap td.f{background:var(--prep-bg); color:var(--prep); font-weight:700}
+.cap td.p{background:var(--wait-bg); color:var(--wait); font-weight:700}
+.cap td.l{color:var(--mute)}
+.cap th.c{text-align:center; font-size:11.5px}
+.legend{display:flex; gap:16px; flex-wrap:wrap; font-size:13px; color:var(--mute); margin-top:12px}
+.legend i{display:inline-block; width:12px; height:12px; border-radius:3px; margin-right:6px; vertical-align:-1px}
+
+/* Mensagem */
+.letter{background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:26px 28px; max-width:70ch; font-size:15.5px; line-height:1.68}
+.letter .hd{font-size:13.5px; color:var(--mute); border-bottom:1px solid var(--line-2); padding-bottom:12px; margin-bottom:16px}
+.letter .hd b{color:var(--ink); font-weight:600}
+.btn{border:1px solid var(--ink); background:var(--ink); color:#fff; font:inherit; font-size:14px; font-weight:600; padding:9px 16px; border-radius:7px; cursor:pointer; margin-top:16px}
+.btn.ghost{background:none; color:var(--ink)}
+.btn:focus-visible{outline:2px solid var(--prep); outline-offset:2px}
+
+.note{font-size:13px; color:var(--mute); margin-top:14px; max-width:78ch}
+footer{border-top:1px solid var(--line); padding:20px 0 40px; font-size:13px; color:var(--mute)}
+
+@media (max-width:860px){
+  .cards,.queues{grid-template-columns:1fr}
+  .facts{grid-template-columns:1fr}
+  .ruleline{height:auto; background:none; margin:16px 0 0}
+  .tick{position:static; transform:none; width:auto; display:flex; gap:12px; align-items:baseline; text-align:left; border-bottom:1px solid var(--line-2); padding:10px 0}
+  .dot{margin:0; flex:0 0 auto; align-self:center}
+  .tick .d{margin:0; width:92px}
+  .tick.alt .d{margin-top:0}
+  .tick.alt .dot{box-shadow:none}
+  .tick .n{min-height:0}
+  .rulefoot{margin-top:14px}
+}
+@media print{
+  nav,.tools,.more,.btn{display:none}
+  section[role="tabpanel"]{display:block !important; break-before:page}
+  body{background:#fff}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <h1>Painel das seis oportunidades</h1>
+    <p class="sub">Onde está cada conversa da LIA, o que foi decidido, quem conduz e o que vence primeiro. Feito para que outra pessoa da Liga assuma o trabalho sem precisar de explicação verbal.</p>
+    <div class="idcard">
+      <span><b>Daniel Silva Santos</b></span>
+      <span>Área de interesse: <b>Relações Institucionais</b></span>
+      <span>Processo seletivo <b>2026.2</b></span>
+      <span>Semana de referência: <b>28/09/2026</b></span>
+      <span>Equipe: <b>6 membros</b></span>
+    </div>
+    <nav role="tablist" aria-label="Seções do painel">
+      <button role="tab" aria-selected="true" aria-controls="p-agenda" id="t-agenda">Agenda</button>
+      <button role="tab" aria-selected="false" aria-controls="p-opp" id="t-opp">Oportunidades</button>
+      <button role="tab" aria-selected="false" aria-controls="p-cap" id="t-cap">Equipe e capacidade</button>
+      <button role="tab" aria-selected="false" aria-controls="p-ind" id="t-ind">Indicadores</button>
+      <button role="tab" aria-selected="false" aria-controls="p-msg" id="t-msg">Primeira mensagem</button>
+      <button role="tab" aria-selected="false" aria-controls="p-plano" id="t-plano">Plano e renúncias</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- ====================== AGENDA ====================== -->
+<section role="tabpanel" id="p-agenda" aria-labelledby="t-agenda" class="on">
+  <p class="lede">As seis organizações pedem retorno em datas diferentes. A régua abaixo mostra a ordem real de vencimento: a Meridian é o primeiro compromisso a vencer, não a primeira da numeração do case.</p>
+
+  <div class="rule">
+    <h2 class="sec" style="margin:0 0 4px">Ordem de vencimento dos retornos</h2>
+    <p style="font-size:13.5px; color:var(--mute); margin:0">Prazos declarados pelas organizações no cenário, entre 1º e 16 de outubro de 2026.</p>
+    <div class="ruleline" id="ruleline"></div>
+    <div class="rulefoot" id="rulefoot"><span>28 set 2026 · início da simulação</span><span>16 out 2026 · último retorno pedido</span></div>
+  </div>
+
+  <h2 class="sec">O que já pode ser assumido, o que espera e o que fica de fora</h2>
+  <div class="queues">
+    <div class="queue">
+      <h3><span class="pill go">ASSUMIR AGORA</span></h3>
+      <ol>
+        <li><b>Meridian Estratégia</b> — confirmar a oficina de uma manhã até 01/10.<span>Compromisso fechado, pontual, sem dependência externa.</span></li>
+        <li><b>Senda Patrimonial</b> — aceitar a conversa até 02/10 e abrir o piloto de 4 semanas.<span>Conversa é compromisso firme; o piloto só começa após o alinhamento de escopo.</span></li>
+        <li><b>Brava Consultoria</b> — confirmar turma de 3 membros até 07/10.<span>Formação interna, não é entrega a cliente.</span></li>
+      </ol>
+    </div>
+    <div class="queue">
+      <h3><span class="pill wait">EM ESPERA</span></h3>
+      <ol>
+        <li><b>Violeta Financeira</b> — conversa de 30 min na semana de 05/10.<span>Fica em espera até o recorte do problema e as aprovações internas; seleção interna só no fim de novembro.</span></li>
+        <li><b>Prisma Estratégica</b> — candidatura enxuta até 15/10.<span>Envio é barato; a participação no desafio depende de orçamento e agenda dos sócios.</span></li>
+        <li><b>Aerion Sistemas</b> — resposta de interesse e perguntas até 16/10.<span>Visita exploratória em novembro; qualquer execução fica para 2027.</span></li>
+      </ol>
+    </div>
+    <div class="queue">
+      <h3><span class="pill stop">NÃO ASSUMIR AGORA</span></h3>
+      <ol>
+        <li><b>Projeto de 3 meses na Violeta</b><span>Exigiria 3 a 4 membros constantes e choca com o piloto Senda.</span></li>
+        <li><b>Projeto de 5 meses na Aerion</b><span>4 a 5 membros, autorizações e treinamento de segurança; ocuparia quase toda a Liga.</span></li>
+        <li><b>Segundo piloto externo em paralelo ao da Senda</b><span>Regra de proteção do portfólio.</span></li>
+        <li><b>Participação no desafio da Prisma em novembro</b><span>Só após seleção; não se reserva equipe antes disso.</span></li>
+      </ol>
+    </div>
+  </div>
+
+  <h2 class="sec">Compromissos em aberto</h2>
+  <div class="panel">
+    <p style="font-size:14px; color:var(--ink-2)">Marque conforme concluir. O indicador de cumprimento é calculado a partir desta lista e fica salvo neste navegador.</p>
+    <div class="bar"><i id="todobar" style="width:0%"></i></div>
+    <p style="font-size:13px; color:var(--mute); margin:0 0 8px"><span id="todocount">0 de 0</span> compromissos concluídos</p>
+    <ul class="todo" id="todo"></ul>
+    <button class="btn ghost" id="reset">Limpar marcações</button>
+  </div>
+</section>
+
+<!-- ====================== OPORTUNIDADES ====================== -->
+<section role="tabpanel" id="p-opp" aria-labelledby="t-opp" hidden>
+  <p class="lede">Cada cartão traz a situação da conversa, a prioridade, a justificativa, a próxima ação com responsável por função e prazo, as pendências, a condição de revisão e a dedicação estimada. As funções substituem nomes, porque o cenário não informa quem são os seis integrantes.</p>
+  <div class="tools">
+    <input id="q" type="search" placeholder="Buscar organização ou palavra" aria-label="Buscar">
+    <select id="fs" aria-label="Filtrar por decisão">
+      <option value="">Todas as decisões</option>
+      <option value="go">Executar ou confirmar</option>
+      <option value="prep">Formação</option>
+      <option value="wait">Explorar sem compromisso</option>
+    </select>
+    <select id="fp" aria-label="Filtrar por prioridade">
+      <option value="">Todas as prioridades</option>
+      <option value="1">Prioridade 1</option>
+      <option value="2">Prioridade 2</option>
+      <option value="3">Prioridade 3</option>
+    </select>
+    <select id="so" aria-label="Ordenar">
+      <option value="prazo">Ordenar por prazo</option>
+      <option value="prio">Ordenar por prioridade</option>
+      <option value="nome">Ordenar por organização</option>
+    </select>
+    <button class="btn ghost" id="expand" style="margin-top:0">Abrir todas</button>
+  </div>
+  <div class="cards" id="cards"></div>
+  <p class="note" id="empty" hidden>Nenhuma organização corresponde ao filtro.</p>
+</section>
+
+<!-- ====================== CAPACIDADE ====================== -->
+<section role="tabpanel" id="p-cap" aria-labelledby="t-cap" hidden>
+  <p class="lede">A Liga tem seis membros, que também participam da formação e da rotina interna. O plano compromete cinco deles de forma estruturada e preserva um para conduzir as conversas que não viram projeto. A grade mostra que as frentes simultâneas cabem na equipe.</p>
+
+  <h2 class="sec">Quem faz o quê, por função</h2>
+  <div class="panel scroll">
+    <table>
+      <thead><tr><th>Função</th><th>Frente principal</th><th>Dedicação</th><th>Também responde por</th></tr></thead>
+      <tbody>
+        <tr><td><b>Relações Institucionais</b></td><td>Todas as conversas externas</td><td>Pontual, distribuída</td><td>Senda, Violeta, Prisma, Aerion, Meridian, Brava — é o ponto de contato único</td></tr>
+        <tr><td><b>Coordenação de projeto</b></td><td>Piloto Senda</td><td>4 semanas</td><td>Escopo, critérios de sucesso e acompanhamento dos testes</td></tr>
+        <tr><td><b>Apoio técnico</b></td><td>Piloto Senda</td><td>4 semanas</td><td>Construção e teste da solução de busca interna</td></tr>
+        <tr><td><b>Coordenação de formação</b></td><td>Formação Brava</td><td>6 semanas</td><td>Turma, agenda de encontros e leitura entre sessões</td></tr>
+        <tr><td><b>Operações</b></td><td>Formação Brava</td><td>6 semanas</td><td>Organização da oficina Meridian em 08/10, antes de a formação começar</td></tr>
+        <tr><td><b>Registro e síntese</b></td><td>Formação Brava</td><td>6 semanas</td><td>Documentação do aprendizado e repasse ao restante da Liga</td></tr>
+      </tbody>
+    </table>
+    <p class="note">O membro de Relações Institucionais é deliberadamente mantido fora das duas frentes longas. É ele quem sustenta Violeta, Prisma e Aerion sem que nenhuma delas vire uma terceira frente de execução.</p>
+  </div>
+
+  <h2 class="sec">Grade semanal</h2>
+  <div class="panel scroll">
+    <table class="cap">
+      <thead>
+        <tr>
+          <th>Semana</th>
+          <th class="c">RI</th><th class="c">Coord. projeto</th><th class="c">Apoio técnico</th>
+          <th class="c">Coord. formação</th><th class="c">Operações</th><th class="c">Registro</th>
+          <th class="c">Membros ocupados</th>
+        </tr>
+      </thead>
+      <tbody id="capbody"></tbody>
+    </table>
+    <div class="legend">
+      <span><i style="background:var(--go-bg); border:1px solid var(--go)"></i>Piloto Senda</span>
+      <span><i style="background:var(--prep-bg); border:1px solid var(--prep)"></i>Formação Brava</span>
+      <span><i style="background:var(--wait-bg); border:1px solid var(--wait)"></i>Atividade pontual</span>
+      <span><i style="background:#fff; border:1px solid var(--line)"></i>Livre para rotina interna</span>
+    </div>
+    <p class="note">O pico é de cinco membros ocupados entre 20/10 e 31/10, quando o piloto Senda e a formação Brava se sobrepõem por duas semanas. A oficina Meridian ocorre em 08/10, antes de a formação começar, e por isso não disputa a mesma pessoa.</p>
+  </div>
+
+  <h2 class="sec">Regra de proteção</h2>
+  <div class="panel">
+    <p><b>A LIA não abre uma segunda frente de execução externa enquanto o piloto Senda estiver em andamento.</b> Conversas, candidaturas, oficinas e visitas exploratórias continuam, porque consomem horas pontuais e não dedicação constante.</p>
+    <p style="margin:0">Três condições derrubam o plano e exigem renegociação: o piloto Senda passar de dois membros ou de quatro semanas; a formação Brava exigir dedicação maior que os encontros semanais mais leitura; ou qualquer organização pedir início de execução antes de 2027 sem que a equipe tenha concluído a primeira entrega.</p>
+  </div>
+</section>
+
+<!-- ====================== INDICADORES ====================== -->
+<section role="tabpanel" id="p-ind" aria-labelledby="t-ind" hidden>
+  <p class="lede">Três indicadores, escolhidos porque medem exatamente o que pode dar errado neste momento da Liga: prometer e não cumprir, deixar conversas morrerem, e comprometer gente demais.</p>
+  <div class="panel scroll">
+    <table>
+      <thead><tr><th style="width:24%">Indicador</th><th style="width:30%">Como é medido</th><th style="width:12%">Meta</th><th>Por que este</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>Cumprimento dos compromissos</b></td>
+          <td>Compromissos concluídos até a data combinada ÷ compromissos assumidos × 100. Fonte: a lista da aba Agenda.</td>
+          <td>≥ 90%</td>
+          <td>A Liga ainda não entregou nada externamente. A primeira reputação que ela constrói é a de responder quando disse que responderia.</td>
+        </tr>
+        <tr>
+          <td><b>Relações com próximo passo definido</b></td>
+          <td>Oportunidades com data e responsável para a etapa seguinte ÷ oportunidades ativas × 100. Verificação quinzenal.</td>
+          <td>≥ 50%</td>
+          <td>Separa relacionamento de conversa parada. Uma oportunidade sem próximo passo marcado já está perdida, mesmo que ninguém tenha dito não.</td>
+        </tr>
+        <tr>
+          <td><b>Membros com dedicação estruturada</b></td>
+          <td>Contagem de membros alocados em frentes constantes, lida na grade semanal.</td>
+          <td>máx. 5 de 6</td>
+          <td>É o freio. Se chegar a 6, a Liga perdeu a capacidade de responder a qualquer coisa nova e de manter a rotina interna.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="panel">
+    <h3 style="font-size:16px">Leitura atual</h3>
+    <p style="margin-top:8px" id="indlive">Cumprimento: 0% · Relações com próximo passo: 100% (6 de 6) · Membros com dedicação estruturada: 5 de 6.</p>
+    <p class="note" style="margin-top:4px">O primeiro indicador se move conforme os compromissos são marcados na aba Agenda.</p>
+  </div>
+</section>
+
+<!-- ====================== MENSAGEM ====================== -->
+<section role="tabpanel" id="p-msg" aria-labelledby="t-msg" hidden>
+  <p class="lede">O primeiro contato é com a Meridian, porque é o prazo que vence primeiro — 1º de outubro — e porque é o único compromisso que pode ser fechado sem depender de aprovação de terceiros. A mensagem confirma, delimita e pede só o que falta para organizar a manhã.</p>
+  <div class="letter" id="letter">
+    <div class="hd">
+      <div><b>Para:</b> Raul — diretor do escritório paulista, Meridian Estratégia</div>
+      <div><b>Enviar até:</b> 1º de outubro de 2026</div>
+      <div><b>Assunto:</b> Confirmação da oficina com a LIA e dois pontos para fechar a manhã</div>
+    </div>
+    <div id="lettertext">
+      <p>Raul, bom dia.</p>
+      <p>Obrigado pelo convite feito após o encontro sobre carreira. A LIA confirma o interesse na oficina presencial e gostaria de realizá-la em uma das manhãs entre 6 e 9 de outubro, na data que for melhor para a sua equipe.</p>
+      <p>Do nosso lado, a organização fica com o nosso time de operações, que será o ponto de contato para a logística, e as Relações Institucionais acompanham o alinhamento com você. Levaremos um grupo de até 20 estudantes e combinamos internamente a presença confirmada antes do encontro, para não ocupar uma manhã da sua equipe com cadeiras vazias.</p>
+      <p>Queremos que os participantes saiam da oficina conseguindo fazer três coisas: estruturar um problema de negócio a partir de informação incompleta, decidir o que investigar primeiro e defender essa escolha diante de quem recebe a recomendação. Se fizer sentido para vocês, pedimos que o feedback dos três consultores se concentre nesses pontos.</p>
+      <p>Para fecharmos, precisamos de duas definições: a data da manhã e o horário de início e término, e se há algum material ou leitura prévia que vocês queiram que o grupo receba antes.</p>
+      <p>Sobre continuidade, somos diretos: neste ciclo a LIA está com a capacidade comprometida com um piloto já em andamento, então não estamos assumindo projetos novos agora. Seguimos abertos a conversar sobre isso mais à frente, quando houver problema definido e autorização do lado do cliente.</p>
+      <p>Fico no aguardo da data e confirmo a presença do grupo em seguida.</p>
+      <p>Abraço,<br>Daniel Silva Santos<br>Relações Institucionais — Liga de Inteligência Artificial da UFSCar</p>
+    </div>
+  </div>
+  <button class="btn" id="copy">Copiar mensagem</button>
+  <p class="note"><b>Por que esta mensagem e não a da Senda.</b> A Senda pede retorno em 02/10, um dia depois, e também é prioridade 1 — mas aquela resposta depende de alinhar escopo, materiais autorizados e critérios de sucesso, então é uma conversa, não uma confirmação. A Meridian é o único caso em que a LIA pode dizer sim por inteiro na primeira mensagem. O rascunho da conversa com a Senda está em <code>docs/MENSAGEM_02_SENDA.md</code>.</p>
+</section>
+
+<!-- ====================== PLANO ====================== -->
+<section role="tabpanel" id="p-plano" aria-labelledby="t-plano" hidden>
+  <p class="lede">O raciocínio por trás das seis decisões, as suposições que sustentam o plano e o que a Liga está deixando de fazer de propósito.</p>
+
+  <h2 class="sec">Como as seis foram separadas</h2>
+  <div class="panel">
+    <p>O erro mais provável aqui é tratar seis convites como seis projetos. Com seis membros e nenhuma entrega externa concluída, a Liga não tem lastro para prometer execução em mais de uma frente. Por isso as oportunidades foram classificadas pelo tipo de compromisso que exigem, não pelo tamanho da empresa que as ofereceu:</p>
+    <ul>
+      <li><b>Uma execução controlada</b> — Senda. Escopo pequeno, quatro semanas, dois membros. É a primeira entrega e serve para gerar o histórico que hoje falta.</li>
+      <li><b>Uma formação</b> — Brava. Desenvolve capacidade sem gerar entrega a cliente, o que a própria consultoria já limitou.</li>
+      <li><b>Uma atividade pontual</b> — Meridian. Uma manhã, alto retorno formativo, custo concentrado.</li>
+      <li><b>Uma candidatura</b> — Prisma. Esforço de redação, sem reserva de equipe.</li>
+      <li><b>Duas explorações</b> — Violeta e Aerion. Conversar custa pouco; executar custaria quase toda a Liga.</li>
+    </ul>
+    <p style="margin:0">A distinção que organiza tudo é a que o próprio case sugere: o compromisso de <b>conhecer</b> uma oportunidade é diferente do compromisso de <b>executá-la</b>. Violeta e Aerion recebem o primeiro e não o segundo.</p>
+  </div>
+
+  <h2 class="sec">As três perspectivas</h2>
+  <div class="panel">
+    <p><b>Growth.</b> O ativo que falta à Liga não é volume de conversas, é prova. O piloto Senda é a aposta de Growth: quatro semanas geram um caso concreto que torna defensável a candidatura à Prisma, a conversa com a Violeta e a proposta à Aerion em 2027. Theo já indicou que um resultado útil abre outras unidades — é a única oportunidade do conjunto com expansão interna embutida.</p>
+    <p><b>Relações Institucionais.</b> Todas as seis portas ficam abertas. Nenhuma recebe não; duas recebem um sim parcial e honesto. O contato é único e as mensagens declaram a capacidade real, o que evita a promessa que o case adverte: um compromisso incompatível com a equipe destrói confiança e aprendizado ao mesmo tempo.</p>
+    <p style="margin:0"><b>Operações.</b> Responsáveis por função, prazos amarrados às datas do cenário, sobreposição calculada semana a semana e uma regra única de proteção. O limite de cinco membros ocupados não é estético: é o que mantém alguém livre para responder quando a sétima oportunidade aparecer.</p>
+  </div>
+
+  <h2 class="sec">Suposições declaradas</h2>
+  <div class="panel scroll">
+    <table>
+      <thead><tr><th style="width:52%">Suposição</th><th>O que acontece se for falsa</th></tr></thead>
+      <tbody>
+        <tr><td>A equipe de formação da Senda aprova o piloto e indica alguém para acompanhar os testes.</td><td>O piloto não começa. A conversa de carreira em outubro é mantida e a relação segue viva.</td></tr>
+        <tr><td>A Senda consegue liberar exemplos de materiais reescritos, sem dados de clientes.</td><td>O escopo passa a ser diagnóstico do problema de busca, sem construção de solução.</td></tr>
+        <tr><td>Há três membros com disponibilidade constante por seis semanas para a Brava.</td><td>Negocia-se turma de dois, que Helena já sinalizou aceitar discutir.</td></tr>
+        <tr><td>A Meridian aceita uma manhã entre 6 e 9 de outubro.</td><td>A oficina não acontece neste ciclo; a relação com Raul é mantida para 2027.</td></tr>
+        <tr><td>A LIA consegue descrever experiências suficientes para a candidatura à Prisma.</td><td>A candidatura é enviada mesmo assim, com foco em formação e composição da equipe, assumindo menor força.</td></tr>
+        <tr><td>A visita à Aerion em novembro não exige treinamento de segurança prévio longo.</td><td>A visita é adiada; as perguntas seguem por escrito até 16/10 de qualquer forma.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="sec">O que a Liga não vai assumir, e por quê</h2>
+  <div class="panel scroll">
+    <table>
+      <thead><tr><th style="width:34%">Renúncia</th><th>Motivo</th></tr></thead>
+      <tbody>
+        <tr><td>Projeto de três meses com entrevistas e testes na Violeta</td><td>Exigiria 3 a 4 membros constantes, o que levaria a Liga a 6 de 6 ocupados e inviabilizaria o piloto Senda. A seleção interna da Violeta só ocorre no fim de novembro e ninguém pediu proposta agora.</td></tr>
+        <tr><td>Projeto de cinco meses na Aerion</td><td>4 a 5 membros constantes, autorizações, treinamento de segurança e acompanhamento interno, com início só em 2027. Assumir agora seria reservar quase toda a equipe por uma decisão que ainda não existe.</td></tr>
+        <tr><td>Segundo piloto externo em paralelo</td><td>A Liga não tem histórico de entrega. Dois pilotos simultâneos multiplicam o risco de não concluir nenhum.</td></tr>
+        <tr><td>Reserva de equipe para o desafio da Prisma em novembro</td><td>O desafio depende de orçamento e da agenda dos sócios, e a etapa final tem seleção. Alocar gente antes disso é imobilizar capacidade por uma hipótese.</td></tr>
+        <tr><td>Apresentar o material da formação Brava como projeto entregue</td><td>Restrição explícita da própria consultoria.</td></tr>
+        <tr><td>Qualquer uso de dados de clientes fora das regras de cada empresa</td><td>Condição inegociável nas três organizações que a mencionaram.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="sec">O que ainda precisa ser confirmado</h2>
+  <div class="panel">
+    <ul style="margin:0">
+      <li><b>Senda:</b> aprovação da equipe de formação, responsável interno pelos testes, materiais liberados, critérios de sucesso, data de início das quatro semanas.</li>
+      <li><b>Violeta:</b> recorte do problema, aprovação da liderança, regras de acesso a usuários, quem revisaria mudanças, critérios da seleção interna de novembro.</li>
+      <li><b>Meridian:</b> data e horário da manhã, material prévio, confirmação de presença dos estudantes.</li>
+      <li><b>Brava:</b> horários dos encontros, carga de leitura entre sessões, confirmação dos três participantes, forma de repasse interno do aprendizado.</li>
+      <li><b>Prisma:</b> formato e extensão da descrição pedida, regras do desafio, data da conversa de 20 minutos.</li>
+      <li><b>Aerion:</b> recorte possível para um teste pequeno, regras de compartilhamento dos registros, exigências de segurança, responsável interno.</li>
+    </ul>
+  </div>
+
+  <h2 class="sec">Documentos do repositório</h2>
+  <div class="panel">
+    <ul style="margin:0">
+      <li><a href="docs/MENSAGEM_02_SENDA.md">MENSAGEM_02_SENDA.md</a> — rascunho do segundo contato.</li>
+      <li><a href="docs/diario_de_bordo.pdf">diario_de_bordo.pdf</a> — diário de bordo em três páginas.</li>
+    </ul>
+  </div>
+</section>
+
+</main>
+
+<footer class="wrap">
+  Aplicação offline, sem servidor, banco de dados ou serviço externo. Organizações, pessoas e datas pertencem à simulação do case. As marcações de compromisso ficam salvas apenas neste navegador.
+</footer>
+
+<script>
+"use strict";
+
+/* ---------- Dados ---------- */
+const OPS = [
+  {
+    id:"senda", nome:"Senda Patrimonial", setor:"Assessoria de investimentos · ~180 profissionais",
+    tipo:"go", rotulo:"EXECUTAR", prio:1, prazo:"02/10/2026", iso:"2026-10-02",
+    situacao:"Theo, sócio de uma unidade em São Paulo, procurou a LIA em 23/09 por um grupo universitário. Ofereceu uma conversa sobre carreira e IA em outubro e um possível piloto. Pediu retorno até 02/10, antes de viajar na segunda quinzena. Nada aprovado internamente ainda.",
+    decisao:"Aceitar a conversa e, havendo alinhamento de escopo, executar o piloto de quatro semanas com dois membros.",
+    motivo:"É a única oportunidade que combina escopo pequeno, duração curta e necessidade concreta já descrita pelo próprio cliente. Dá à Liga a primeira entrega externa sem comprometer a equipe inteira, e Theo sinalizou que um resultado útil abre conversas com outras unidades.",
+    acao:"Responder confirmando a conversa e levar a ela a pauta de escopo: problema a atacar, materiais autorizados, responsável interno e critérios de sucesso.",
+    quando:"Até 02/10/2026. Piloto previsto para 06/10 a 31/10.",
+    resp:"Relações Institucionais conduz o contato; Coordenação de projeto assume o piloto com o Apoio técnico.",
+    ded:"2 membros · 4 semanas",
+    pend:["Aprovação da equipe de formação da Senda","Responsável interno para acompanhar os testes","Quais materiais podem ser reescritos e usados","Critérios de sucesso do piloto","Data de início das quatro semanas"],
+    cond:"Rever se o piloto exigir mais de dois membros, passar de quatro semanas, pedir dados de clientes fora das regras da empresa ou virar pedido de solução definitiva.",
+    nao:"Ampliação para outras unidades, manutenção posterior, solução definitiva e qualquer uso de dado de cliente fora das regras da Senda."
+  },
+  {
+    id:"violeta", nome:"Violeta Financeira", setor:"Serviços financeiros digitais · milhões de usuários",
+    tipo:"wait", rotulo:"EXPLORAR", prio:2, prazo:"09/10/2026", iso:"2026-10-09",
+    situacao:"Uma ex-aluna da UFSCar, da área de experiência do cliente, procurou a LIA em 24/09. A equipe dela quer entender por que usuários abandonam a ajuda no aplicativo. O recorte do problema ainda não existe, a liderança não aprovou nada e a seleção interna de projetos só ocorre no fim de novembro. Conversa de 30 minutos oferecida para a semana de 05/10.",
+    decisao:"Aceitar a conversa de 30 minutos e a aula remota sobre pesquisa com usuários, sem prometer projeto.",
+    motivo:"O problema ainda não está delimitado e um projeto exigiria três a quatro membros constantes por pelo menos três meses — o que levaria a Liga ao limite. Ninguém pediu proposta agora, e o calendário da própria Violeta empurra a decisão para o fim de novembro. Conversar custa quase nada e mantém a porta aberta para quando a Liga tiver histórico.",
+    acao:"Agendar a conversa, levar perguntas sobre recorte, acesso a usuários e aprovações, e registrar as respostas para reavaliação em novembro.",
+    quando:"Conversa na semana de 05/10/2026. Reavaliação em novembro, após a seleção interna da Violeta.",
+    resp:"Relações Institucionais conduz; Apoio técnico participa pontualmente da conversa.",
+    ded:"1 a 2 membros · 1 hora de conversa mais preparação",
+    pend:["Qual é o recorte do problema","Aprovação da liderança","Regras de acesso a usuários e exemplos","Quem revisaria as mudanças propostas","Critérios da seleção interna de novembro"],
+    cond:"Só avaliar projeto quando houver problema delimitado, aprovações, acesso definido e pelo menos três membros livres — o que depende do fim do piloto Senda.",
+    nao:"Entrevistas, testes com usuários, desenvolvimento e proposta formal neste ciclo."
+  },
+  {
+    id:"meridian", nome:"Meridian Estratégia", setor:"Consultoria de gestão · escritório paulista",
+    tipo:"go", rotulo:"CONFIRMAR", prio:1, prazo:"01/10/2026", iso:"2026-10-01",
+    situacao:"Raul conheceu integrantes da LIA em um encontro sobre carreira e ofereceu uma oficina presencial de uma manhã, com até 20 estudantes, materiais cobertos pela empresa e feedback de três consultores. Precisa de confirmação até 01/10, porque a equipe fica ocupada com clientes depois de 09/10. É o prazo mais curto do conjunto.",
+    decisao:"Confirmar a oficina para uma manhã entre 6 e 9 de outubro.",
+    motivo:"Retorno formativo alto por custo concentrado: uma manhã, sem dedicação continuada, com feedback de três profissionais. É também o único compromisso do conjunto que a Liga pode fechar por inteiro sem depender de aprovação de terceiros, o que faz dele o primeiro contato.",
+    acao:"Enviar a confirmação indicando quem organiza, as aprendizagens pretendidas e pedindo data, horário e material prévio.",
+    quando:"Até 01/10/2026. Oficina entre 06/10 e 09/10.",
+    resp:"Operações organiza; Relações Institucionais faz o contato com Raul.",
+    ded:"2 membros na preparação · 1 manhã para o grupo",
+    pend:["Data e horário da manhã","Material ou leitura prévia","Confirmação de presença dos estudantes","Formato final do feedback dos consultores"],
+    cond:"Rever se a preparação passar de dois dias de trabalho ou se a data cair depois de 09/10, quando a equipe da Meridian fica indisponível.",
+    nao:"Projeto com cliente real, diagnóstico posterior ou qualquer promessa de continuidade sem nova decisão."
+  },
+  {
+    id:"brava", nome:"Brava Consultoria", setor:"Estratégia e execução",
+    tipo:"prep", rotulo:"FORMAÇÃO", prio:2, prazo:"07/10/2026", iso:"2026-10-07",
+    situacao:"Helena propôs seis semanas de formação com dois consultores, encontros semanais e feedback sobre diagnóstico, decisões e apresentação final, usando um caso de treinamento da própria consultoria. Quer saber até 07/10 quantos membros participam de forma constante. Estima três ou quatro, mas aceita discutir turma menor e adaptar horários.",
+    decisao:"Aceitar com turma reduzida de três membros, com repasse interno obrigatório.",
+    motivo:"Desenvolve capacidade de diagnóstico e apresentação, que é exatamente o que falta à Liga antes de assumir projetos maiores — e não é entrega a cliente, então não disputa o lugar do piloto Senda. Três membros, e não quatro, porque quatro mais os dois da Senda travariam a equipe inteira.",
+    acao:"Confirmar a turma de três, negociar horários que não colidam com o piloto e combinar como o aprendizado será repassado aos outros três membros.",
+    quando:"Até 07/10/2026. Formação na segunda quinzena de outubro, por seis semanas.",
+    resp:"Coordenação de formação lidera; Operações e Registro e síntese completam a turma.",
+    ded:"3 membros · 6 semanas de encontros semanais mais leitura",
+    pend:["Horários dos encontros","Carga de leitura entre sessões","Confirmação dos três participantes","Formato de repasse interno","O que pode ser citado publicamente"],
+    cond:"Reduzir para dois participantes ou renegociar frequência se a carga colidir com o piloto Senda ou com a rotina interna da Liga.",
+    nao:"Colaboração com cliente da Brava, entrega comercial e apresentação do material da formação como projeto externo."
+  },
+  {
+    id:"prisma", nome:"Prisma Estratégica", setor:"Consultoria internacional",
+    tipo:"wait", rotulo:"CANDIDATURA", prio:3, prazo:"15/10/2026", iso:"2026-10-15",
+    situacao:"Uma professora apresentou a LIA à área de relacionamento universitário. Em 25/09 Bianca informou que a empresa considera um desafio em novembro entre grupos estudantis, com os melhores apresentando a sócios. Pediu descrição da Liga, dos membros e de experiências anteriores até 15/10, e ofereceu conversa de 20 minutos na primeira semana de outubro. A professora já perguntou se a LIA respondeu.",
+    decisao:"Aceitar a conversa de 20 minutos e enviar uma candidatura enxuta, sem reservar equipe para novembro.",
+    motivo:"O custo de responder é baixo e o custo de não responder é alto: há uma professora no meio, e silêncio danifica a relação com ela e com a Prisma. Mas o desafio depende de orçamento, agenda dos sócios e seleção, então não justifica alocar ninguém antecipadamente. A ausência de projetos anteriores enfraquece a candidatura e isso é assumido.",
+    acao:"Responder à professora ainda nesta semana, marcar a conversa de 20 minutos e preparar a descrição da Liga com foco em formação, composição e método.",
+    quando:"Conversa na primeira semana de outubro. Descrição enviada até 15/10/2026.",
+    resp:"Relações Institucionais, sem apoio adicional.",
+    ded:"1 membro · cerca de um dia de trabalho somado",
+    pend:["Formato e extensão da descrição pedida","Regras e critérios do desafio","Data da conversa de 20 minutos","O que pode ser apresentado como experiência"],
+    cond:"Reduzir o escopo da candidatura se exigir material que a Liga não tem, e não avançar se a participação exigir dedicação em novembro que choque com o piloto Senda.",
+    nao:"Participação confirmada no desafio, reserva de equipe para novembro e qualquer descrição de experiência que a Liga não possa sustentar."
+  },
+  {
+    id:"aerion", nome:"Aerion Sistemas Aeroespaciais", setor:"Aviação · linha de montagem",
+    tipo:"wait", rotulo:"EXPLORAR", prio:3, prazo:"16/10/2026", iso:"2026-10-16",
+    situacao:"Durante visita à UFSCar, Beatriz, gerente de melhoria de processos, relatou dificuldade para reunir informações de inspeções espalhadas entre equipes, com muito texto livre. Quer ouvir os técnicos antes de propor tecnologia. Espera até 16/10 uma resposta sobre o interesse da LIA e as perguntas que ela gostaria de investigar. Visita exploratória possível em novembro; projeto só começaria em 2027.",
+    decisao:"Responder com interesse, enviar as perguntas de investigação e aceitar a visita exploratória em novembro — sem assumir execução.",
+    motivo:"É o problema mais rico do conjunto e também o mais caro: cinco meses, quatro a cinco membros constantes, autorizações e treinamento de segurança ocupariam quase toda a Liga. Como o início seria em 2027, nada se perde ao explorar agora e decidir depois, com o piloto Senda já concluído e um histórico para mostrar.",
+    acao:"Responder a Beatriz com uma lista curta de perguntas sobre o recorte e o acesso aos registros, e combinar a visita de novembro com dois membros.",
+    quando:"Até 16/10/2026. Visita em novembro. Decisão sobre projeto só em 2027.",
+    resp:"Relações Institucionais responde; Apoio técnico formula as perguntas de investigação.",
+    ded:"1 a 2 membros · redação das perguntas mais um dia de visita",
+    pend:["Qual recorte pequeno serviria como primeiro teste","Regras de compartilhamento dos registros de inspeção","Exigências de treinamento de segurança","Possibilidade de anonimização dos textos livres","Quem acompanharia internamente"],
+    cond:"Só considerar execução em 2027, e apenas se houver recorte pequeno definido, quatro membros livres, autorizações formalizadas e treinamento viabilizado.",
+    nao:"Projeto de cinco meses, qualquer início em 2026 e compromisso de equipe antes da visita."
+  }
+];
+
+const COMPROMISSOS = [
+  {id:"c1", iso:"2026-10-01", txt:"Confirmar a oficina à Meridian", sub:"Relações Institucionais · pedir data, horário e material prévio", when:"01/10"},
+  {id:"c2", iso:"2026-10-02", txt:"Responder a Theo e marcar a conversa da Senda", sub:"Relações Institucionais · levar pauta de escopo e critérios", when:"02/10"},
+  {id:"c3", iso:"2026-10-03", txt:"Responder à professora e marcar a conversa com Bianca", sub:"Relações Institucionais · conversa de 20 min na 1ª semana", when:"03/10"},
+  {id:"c4", iso:"2026-10-09", txt:"Realizar a conversa de 30 minutos com a Violeta", sub:"Relações Institucionais e Apoio técnico · registrar condições", when:"09/10"},
+  {id:"c5", iso:"2026-10-07", txt:"Confirmar a turma de três membros à Brava", sub:"Coordenação de formação · horários e repasse interno", when:"07/10"},
+  {id:"c6", iso:"2026-10-08", txt:"Realizar a oficina na Meridian", sub:"Operações · até 20 estudantes, uma manhã", when:"08/10"},
+  {id:"c7", iso:"2026-10-06", txt:"Iniciar o piloto na Senda", sub:"Coordenação de projeto e Apoio técnico · 4 semanas", when:"06/10"},
+  {id:"c8", iso:"2026-10-15", txt:"Enviar a descrição da Liga à Prisma", sub:"Relações Institucionais · candidatura enxuta", when:"15/10"},
+  {id:"c9", iso:"2026-10-16", txt:"Responder a Beatriz com as perguntas de investigação", sub:"Relações Institucionais e Apoio técnico · combinar visita de novembro", when:"16/10"},
+  {id:"c10", iso:"2026-10-20", txt:"Iniciar a formação na Brava", sub:"Coordenação de formação, Operações e Registro · 6 semanas", when:"20/10"}
+].sort((a,b)=>a.iso.localeCompare(b.iso));
+
+const SEMANAS = [
+  {s:"28/09 a 04/10", ri:["p","Prisma, Meridian"], cp:["l","—"], at:["l","—"], cf:["l","—"], op:["p","Meridian"], rg:["l","—"], n:2},
+  {s:"05/10 a 11/10", ri:["p","Violeta, Senda"], cp:["s","Senda"], at:["s","Senda"], cf:["l","—"], op:["p","Oficina 08/10"], rg:["l","—"], n:4},
+  {s:"12/10 a 18/10", ri:["p","Prisma, Aerion"], cp:["s","Senda"], at:["s","Senda"], cf:["l","—"], op:["l","—"], rg:["l","—"], n:3},
+  {s:"19/10 a 25/10", ri:["l","—"], cp:["s","Senda"], at:["s","Senda"], cf:["f","Brava"], op:["f","Brava"], rg:["f","Brava"], n:5},
+  {s:"26/10 a 01/11", ri:["l","—"], cp:["s","Senda"], at:["s","Senda"], cf:["f","Brava"], op:["f","Brava"], rg:["f","Brava"], n:5},
+  {s:"02/11 a 29/11", ri:["p","Visita Aerion"], cp:["l","—"], at:["l","—"], cf:["f","Brava"], op:["f","Brava"], rg:["f","Brava"], n:4}
+];
+
+/* ---------- Abas ---------- */
+const tabs = [...document.querySelectorAll('[role="tab"]')];
+tabs.forEach(t => t.addEventListener("click", () => {
+  tabs.forEach(o => {
+    const panel = document.getElementById(o.getAttribute("aria-controls"));
+    const on = o === t;
+    o.setAttribute("aria-selected", on);
+    panel.hidden = !on;
+    panel.classList.toggle("on", on);
+  });
+  window.scrollTo({top:0, behavior:"instant"});
+}));
+
+/* ---------- Régua de prazos ---------- */
+(function(){
+  const line = document.getElementById("ruleline");
+  const ord = [...OPS].sort((a,b) => a.iso.localeCompare(b.iso));
+  const ini = new Date("2026-09-28"), fim = new Date("2026-10-18");
+  const span = fim - ini;
+  const curto = {senda:"Senda · retorno", violeta:"Violeta · conversa", meridian:"Meridian · confirmação",
+                 brava:"Brava · nº de participantes", prisma:"Prisma · candidatura", aerion:"Aerion · interesse"};
+  line.innerHTML = ord.map((o,i) => {
+    const pos = ((new Date(o.iso) - ini) / span) * 100;
+    return `<div class="tick ${i===0?"first":""} ${i%2?"alt":""}" style="left:${pos.toFixed(1)}%">
+      <div class="dot"></div><div class="d">${o.prazo.slice(0,5)}</div><div class="n">${curto[o.id]}</div></div>`;
+  }).join("");
+})();
+
+/* ---------- Compromissos ---------- */
+const KEY = "lia-case-compromissos";
+let feitos = {};
+try { feitos = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch(e) { feitos = {}; }
+
+function salvar(){ try { localStorage.setItem(KEY, JSON.stringify(feitos)); } catch(e){} }
+
+function pintaTodo(){
+  const ul = document.getElementById("todo");
+  ul.innerHTML = COMPROMISSOS.map(c => `
+    <li class="${feitos[c.id] ? "done" : ""}">
+      <input type="checkbox" id="${c.id}" ${feitos[c.id] ? "checked" : ""} aria-label="Concluir: ${c.txt}">
+      <label class="txt" for="${c.id}"><b>${c.txt}</b><span>${c.sub}</span></label>
+      <span class="when">${c.when}</span>
+    </li>`).join("");
+  ul.querySelectorAll("input").forEach(i => i.addEventListener("change", () => {
+    feitos[i.id] = i.checked; salvar(); pintaTodo(); indicadores();
+  }));
+  const n = COMPROMISSOS.filter(c => feitos[c.id]).length;
+  document.getElementById("todobar").style.width = (n / COMPROMISSOS.length * 100) + "%";
+  document.getElementById("todocount").textContent = n + " de " + COMPROMISSOS.length;
+}
+document.getElementById("reset").addEventListener("click", () => {
+  feitos = {}; salvar(); pintaTodo(); indicadores();
+});
+
+function indicadores(){
+  const n = COMPROMISSOS.filter(c => feitos[c.id]).length;
+  const pct = Math.round(n / COMPROMISSOS.length * 100);
+  document.getElementById("indlive").textContent =
+    `Cumprimento: ${pct}% (${n} de ${COMPROMISSOS.length}) · Relações com próximo passo definido: 100% (6 de 6) · Membros com dedicação estruturada: 5 de 6.`;
+}
+
+/* ---------- Cartões ---------- */
+const abertos = {};
+function pintaCards(){
+  const q = document.getElementById("q").value.trim().toLowerCase();
+  const fs = document.getElementById("fs").value;
+  const fp = document.getElementById("fp").value;
+  const so = document.getElementById("so").value;
+
+  let lista = OPS.filter(o => {
+    const texto = (o.nome + " " + o.setor + " " + o.decisao + " " + o.motivo + " " + o.situacao).toLowerCase();
+    return (!q || texto.includes(q)) && (!fs || o.tipo === fs) && (!fp || String(o.prio) === fp);
+  });
+  lista.sort((a,b) =>
+    so === "nome" ? a.nome.localeCompare(b.nome,"pt-BR") :
+    so === "prio" ? (a.prio - b.prio) || a.iso.localeCompare(b.iso) :
+    a.iso.localeCompare(b.iso));
+
+  document.getElementById("empty").hidden = lista.length > 0;
+  document.getElementById("cards").innerHTML = lista.map(o => `
+    <article class="card ${o.tipo}">
+      <div class="head">
+        <div><h3>${o.nome}</h3><div class="org">${o.setor}</div></div>
+        <span class="pill ${o.tipo}">${o.rotulo}</span>
+      </div>
+      <div class="sit"><b>Situação da conversa.</b> ${o.situacao}</div>
+      <div class="facts">
+        <div>Prioridade <b>${o.prio}</b></div>
+        <div>Prazo <b>${o.prazo}</b></div>
+        <div>Dedicação <b>${o.ded}</b></div>
+        <div>Responsável <b>${o.resp.split(";")[0]}</b></div>
+      </div>
+      <button class="more" data-id="${o.id}">${abertos[o.id] ? "Ocultar detalhes" : "Ver decisão, pendências e condições"}</button>
+      <div class="detail" ${abertos[o.id] ? "" : "hidden"}>
+        <h4>Decisão</h4><p>${o.decisao}</p>
+        <h4>Justificativa</h4><p>${o.motivo}</p>
+        <h4>Próxima ação</h4><p>${o.acao}</p>
+        <h4>Quando</h4><p>${o.quando}</p>
+        <h4>Responsáveis por função</h4><p>${o.resp}</p>
+        <h4>Informações pendentes</h4><ul>${o.pend.map(p => `<li>${p}</li>`).join("")}</ul>
+        <h4>Condição para avançar ou rever</h4><p>${o.cond}</p>
+        <h4>O que não será assumido</h4><p style="margin-bottom:0">${o.nao}</p>
+      </div>
+    </article>`).join("");
+
+  document.querySelectorAll(".more").forEach(b => b.addEventListener("click", () => {
+    abertos[b.dataset.id] = !abertos[b.dataset.id]; pintaCards();
+  }));
+}
+["q","fs","fp","so"].forEach(id =>
+  document.getElementById(id).addEventListener("input", pintaCards));
+document.getElementById("expand").addEventListener("click", e => {
+  const todosAbertos = OPS.every(o => abertos[o.id]);
+  OPS.forEach(o => abertos[o.id] = !todosAbertos);
+  e.target.textContent = todosAbertos ? "Abrir todas" : "Fechar todas";
+  pintaCards();
+});
+
+/* ---------- Grade de capacidade ---------- */
+(function(){
+  document.getElementById("capbody").innerHTML = SEMANAS.map(w => `
+    <tr>
+      <td><b>${w.s}</b></td>
+      ${["ri","cp","at","cf","op","rg"].map(k =>
+        `<td class="c ${w[k][0]}">${w[k][1]}</td>`).join("")}
+      <td class="c"><b>${w.n} de 6</b></td>
+    </tr>`).join("");
+})();
+
+/* ---------- Copiar mensagem ---------- */
+document.getElementById("copy").addEventListener("click", async e => {
+  const txt = document.getElementById("lettertext").innerText;
+  try { await navigator.clipboard.writeText(txt); e.target.textContent = "Mensagem copiada"; }
+  catch(err) { e.target.textContent = "Selecione o texto e copie manualmente"; }
+  setTimeout(() => e.target.textContent = "Copiar mensagem", 2600);
+});
+
+pintaTodo(); pintaCards(); indicadores();
+</script>
+</body>
+</html>
