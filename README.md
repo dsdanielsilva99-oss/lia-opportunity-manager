@@ -32,8 +32,6 @@ um arquivo único.
 | Aba **Primeira mensagem** | O rascunho completo do primeiro contato, pronto para copiar. |
 | Aba **Plano e renúncias** | O raciocínio inteiro: critérios, suposições declaradas e o que fica de fora. |
 
-Testado em Chrome, Firefox e Safari, em desktop e celular.
-
 ---
 
 
